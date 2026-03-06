@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Leaner</title>
+
+<link rel="icon" href="logo.png">
+
+<style>
+
+*{box-sizing:border-box;}
+
+body{
+margin:0;
+font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+background:linear-gradient(135deg,#667eea,#764ba2);
+}
+
+.app-container{
+max-width:375px;
+margin:auto;
+min-height:100vh;
+padding:20px;
+display:flex;
+align-items:center;
+justify-content:center;
+}
+
+.card{
+background:white;
+width:100%;
+border-radius:28px;
+padding:22px;
+box-shadow:0 20px 50px rgba(0,0,0,0.18);
+}
+
+.logo{
+text-align:center;
+margin-bottom:10px;
+}
+
+.logo img{
+width:70px;
+}
+
+h2{
+text-align:center;
+margin:5px 0 18px 0;
+color:#333;
+}
+
+input,textarea{
+width:100%;
+padding:10px;
+margin:6px 0 14px 0;
+border-radius:12px;
+border:1px solid #ddd;
+font-size:14px;
+}
+
+textarea{
+resize:vertical;
+}
+
+button{
+width:100%;
+padding:12px;
+margin-bottom:10px;
+border:none;
+border-radius:14px;
+font-size:14px;
+font-weight:600;
+cursor:pointer;
+background:#eef0ff;
+color:#667eea;
+}
+
+.saved-item{
+background:#f5f5f5;
+padding:10px 12px;
+border-radius:12px;
+margin-top:6px;
+font-size:13px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+cursor:pointer;
+}
+
+.saved-item:hover{
+background:#e9ecff;
+}
+
+.delete-btn{
+color:red;
+cursor:pointer;
+}
+
+#quiz{
+display:none;
+}
+
+.quiz-content{
+display:flex;
+flex-direction:column;
+justify-content:space-between;
+height:420px;
+}
+
+.word-box{
+flex:1;
+background:#f7f7f7;
+border-radius:18px;
+padding:18px;
+text-align:center;
+font-size:18px;
+font-weight:700;
+margin-bottom:15px;
+box-shadow:0 6px 16px rgba(0,0,0,0.08);
+display:flex;
+align-items:center;
+justify-content:center;
+}
+
+.en-box{
+color:#667eea;
+}
+
+#ipaBox{
+text-align:center;
+font-size:16px;
+color:#777;
+margin-top:-5px;
+margin-bottom:10px;
+}
+
+.button-row{
+display:flex;
+gap:8px;
+}
+
+.button-row button{
+flex:1;
+margin-bottom:0;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="app-container">
+
+<!-- SETUP -->
+
+<div id="setup" class="card">
+
+<div class="logo">
+<img src="logo.png">
+</div>
+
+<h2>Leaner</h2>
+
+<input type="text" id="setName" placeholder="Tên bộ từ">
+
+<label>Từ tiếng Anh (mỗi dòng 1 từ)</label>
+<textarea id="englishInput"></textarea>
+
+<label>Nghĩa tiếng Việt (mỗi dòng 1 nghĩa)</label>
+<textarea id="vietnameseInput"></textarea>
+
+<button onclick="saveSet()">💾 Lưu bộ</button>
+
+<button onclick="startQuiz()">▶ Bắt đầu học</button>
+
+<h3 style="color:#333;margin-top:15px;">Bộ đã lưu</h3>
+
+<div id="savedList"></div>
+
+</div>
+
+<!-- QUIZ -->
+
+<div id="quiz" class="card">
+
+<div class="logo">
+<img src="logo.png">
+</div>
+
+<h2>Học từ vựng</h2>
+
+<div class="quiz-content">
+
+<div>
+
+<div class="word-box" id="vnBox"></div>
+
+<div class="word-box en-box" id="enBox"></div>
+
+<div id="ipaBox"></div>
+
+</div>
+
+<div class="button-row">
+
+<button onclick="goHome()">Quay lại</button>
+
+<button onclick="speakWord()">Phát âm</button>
+
+<button onclick="nextStep()">Next</button>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+let wordList=[]
+let currentIndex=0
+let showEnglish=false
+
+function shuffle(array){
+
+for(let i=array.length-1;i>0;i--){
+
+let j=Math.floor(Math.random()*(i+1))
+
+let temp=array[i]
+array[i]=array[j]
+array[j]=temp
+
+}
+
+}
+
+function saveSet(){
+
+let name=document.getElementById("setName").value.trim()
+
+if(!name){
+alert("Nhập tên bộ!")
+return
+}
+
+let en=document.getElementById("englishInput").value
+let vi=document.getElementById("vietnameseInput").value
+
+let sets=JSON.parse(localStorage.getItem("vocabSets")||"{}")
+
+sets[name]={en,vi}
+
+localStorage.setItem("vocabSets",JSON.stringify(sets))
+
+loadSavedSets()
+
+alert("Đã lưu!")
+
+}
+
+function loadSavedSets(){
+
+let sets=JSON.parse(localStorage.getItem("vocabSets")||"{}")
+
+let container=document.getElementById("savedList")
+
+container.innerHTML=""
+
+for(let name in sets){
+
+let div=document.createElement("div")
+
+div.className="saved-item"
+
+div.onclick=function(){
+loadSet(name)
+}
+
+div.innerHTML=`
+<span>${name}</span>
+<span class="delete-btn" onclick="deleteSet('${name}',event)">✕</span>
+`
+
+container.appendChild(div)
+
+}
+
+}
+
+function loadSet(name){
+
+let sets=JSON.parse(localStorage.getItem("vocabSets")||"{}")
+
+document.getElementById("englishInput").value=sets[name].en
+document.getElementById("vietnameseInput").value=sets[name].vi
+document.getElementById("setName").value=name
+
+}
+
+function deleteSet(name,e){
+
+e.stopPropagation()
+
+let sets=JSON.parse(localStorage.getItem("vocabSets")||"{}")
+
+delete sets[name]
+
+localStorage.setItem("vocabSets",JSON.stringify(sets))
+
+loadSavedSets()
+
+}
+
+function startQuiz(){
+
+let enLines=document
+.getElementById("englishInput")
+.value
+.split("\n")
+.filter(x=>x.trim()!="")
+
+let viLines=document
+.getElementById("vietnameseInput")
+.value
+.split("\n")
+.filter(x=>x.trim()!="")
+
+if(enLines.length==0){
+alert("Chưa có từ vựng!")
+return
+}
+
+if(enLines.length!=viLines.length){
+alert("Số dòng không khớp!")
+return
+}
+
+wordList=[]
+
+for(let i=0;i<enLines.length;i++){
+
+wordList.push({
+en:enLines[i].trim(),
+vi:viLines[i].trim()
+})
+
+}
+
+shuffle(wordList)
+
+currentIndex=0
+showEnglish=false
+
+document.getElementById("setup").style.display="none"
+document.getElementById("quiz").style.display="block"
+
+showWord()
+
+}
+
+function showWord(){
+
+if(currentIndex>=wordList.length){
+
+document.getElementById("vnBox").innerText="🎉 Hoàn thành!"
+document.getElementById("enBox").innerText=""
+document.getElementById("ipaBox").innerText=""
+
+return
+
+}
+
+let word=wordList[currentIndex]
+
+document.getElementById("vnBox").innerText=word.vi
+
+if(showEnglish){
+
+document.getElementById("enBox").innerText=word.en
+loadIPA(word.en)
+
+}else{
+
+document.getElementById("enBox").innerText=""
+document.getElementById("ipaBox").innerText=""
+
+}
+
+}
+
+function nextStep(){
+
+if(!showEnglish){
+
+showEnglish=true
+
+}else{
+
+showEnglish=false
+currentIndex++
+
+}
+
+showWord()
+
+}
+
+function speakWord(){
+
+if(!showEnglish)return
+
+let utter=new SpeechSynthesisUtterance(wordList[currentIndex].en)
+
+utter.lang="en-US"
+
+speechSynthesis.speak(utter)
+
+}
+
+async function loadIPA(word){
+
+try{
+
+let res=await fetch(
+"https://api.dictionaryapi.dev/api/v2/entries/en/"+word
+)
+
+let data=await res.json()
+
+let ipa=""
+
+for(let p of data[0].phonetics){
+
+if(p.audio && p.audio.includes("us")){
+ipa=p.text
+break
+}
+
+}
+
+if(!ipa){
+
+for(let p of data[0].phonetics){
+
+if(p.text){
+ipa=p.text
+break
+}
+
+}
+
+}
+
+document.getElementById("ipaBox").innerText=ipa
+
+}catch{
+
+document.getElementById("ipaBox").innerText=""
+
+}
+
+}
+
+function goHome(){
+
+document.getElementById("quiz").style.display="none"
+document.getElementById("setup").style.display="block"
+
+}
+
+document.addEventListener("DOMContentLoaded",loadSavedSets)
+
+</script>
+
+</body>
+</html>
